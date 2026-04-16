@@ -266,10 +266,10 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--hue-1));
+  background: linear-gradient(90deg, #32cd32, #7fff00);
   border-radius: 99px;
   transition: width 0.1s linear;
-  box-shadow: 0 0 10px var(--accent-glow);
+  box-shadow: 0 0 10px rgba(50, 205, 50, 0.6);
 }
 
 .progress-labels {
