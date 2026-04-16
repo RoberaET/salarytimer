@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import './index.css';
+import { EthDateTime } from 'ethiopian-calendar-date-converter';
 
 type SalaryType = 'hourly' | 'monthly';
 
@@ -64,6 +65,50 @@ function calcWorkedSeconds(
 }
 
 const LUNCH_HOURS = 1; // 1 hour always deducted for lunch
+
+const ETH_MONTHS = [
+  'Meskerem (መስከረም)', 'Tikimt (ጥቅምት)', 'Hidar (ኅዳር)', 'Tahsas (ታኅሣሥ)', 
+  'Tir (ጥር)', 'Yakatit (የካቲት)', 'Maggabit (መጋቢት)', 'Miyazya (ሚያዝያ)', 
+  'Ginbot (ግንቦት)', 'Sene (ሰኔ)', 'Hamle (ሐምሌ)', 'Nehase (ነሐሴ)', 'Pagume (ጳጉሜ)'
+];
+
+function EthiopianConverterCard() {
+  const [ethYear, setEthYear] = useState<number>(2017);
+  const [ethMonth, setEthMonth] = useState<number>(1);
+  const [ethDay, setEthDay] = useState<number>(1);
+
+  const gregorianDateStr = useMemo(() => {
+    try {
+      const eth = new EthDateTime(ethYear, ethMonth, ethDay);
+      const eu = eth.toEuropeanDate();
+      const localEpoch = new Date(eu.getTime() - (eu.getTimezoneOffset() * 60000));
+      return localEpoch.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    } catch {
+      return "Invalid Ethiopian Date";
+    }
+  }, [ethYear, ethMonth, ethDay]);
+
+  return (
+    <div className="bento-card">
+      <div className="card-label">Converter: Ethio → Western</div>
+      
+      <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem', marginBottom: '1rem' }}>
+        <select className="input-field" style={{ padding: '0.5rem', fontSize: '0.9rem', flex: 2 }} value={ethMonth} onChange={e => setEthMonth(Number(e.target.value))}>
+          {ETH_MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m.split(' ')[0]}</option>)}
+        </select>
+        <select className="input-field" style={{ padding: '0.5rem', fontSize: '0.9rem', flex: 1 }} value={ethDay} onChange={e => setEthDay(Number(e.target.value))}>
+          {Array.from({length: ethMonth === 13 ? 6 : 30}, (_,i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+        </select>
+        <input type="number" className="input-field" style={{ padding: '0.5rem', fontSize: '0.9rem', width: '80px', flex: 1 }} value={ethYear} onChange={e => setEthYear(Number(e.target.value))} />
+      </div>
+
+      <div className="card-subtext">Gregorian Equivalent:</div>
+      <div className="card-value" style={{ fontSize: '1.2rem', marginTop: '0.2rem', color: 'var(--success)' }}>
+        {gregorianDateStr}
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const [salary,     setSalary]     = useState<number | ''>('');
@@ -346,8 +391,11 @@ function App() {
                </div>
              ) : (
                <div className="card-subtext" style={{ marginTop: '0.5rem' }}>Loading...</div>
-             )}
+              )}
           </div>
+
+          {/* Converter Card */}
+          <EthiopianConverterCard />
 
           {/* Progress Card */}
           <div className="bento-card">
