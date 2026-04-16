@@ -71,7 +71,7 @@ function App() {
   const [clockIn,    setClockIn]    = useState<string>('08:30');
   const [clockOut,   setClockOut]   = useState<string>('17:30');
 
-  const [now, setNow] = useState<Date>(() => new Date());
+
 
   const [nextPayDateStr, setNextPayDateStr] = useState<string>(() => {
     const d = new Date();
@@ -83,10 +83,29 @@ function App() {
   const [secondsToPayment, setSecondsToPayment] = useState<number>(0);
   const [progressPct,      setProgressPct]      = useState<number>(0);
   const [isWorkingNow,     setIsWorkingNow]      = useState<boolean>(false);
+  
+  // UI State
+  const [showSettings, setShowSettings] = useState<boolean>(false);
 
-  // Live clock — updates every second
+  const [ethioDate, setEthioDate] = useState<any>(null);
+  const [ethioTime, setEthioTime] = useState<any>(null);
+
   useEffect(() => {
-    const iv = setInterval(() => setNow(new Date()), 1000);
+    fetch('https://api.ethioall.com/date/api')
+      .then(res => res.json())
+      .then(data => setEthioDate(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    const fetchTime = () => {
+      fetch('https://api.ethioall.com/time/api')
+        .then(res => res.json())
+        .then(data => setEthioTime(data.ethiopian_time))
+        .catch(err => console.error(err));
+    };
+    fetchTime();
+    const iv = setInterval(fetchTime, 1000);
     return () => clearInterval(iv);
   }, []);
 
@@ -107,7 +126,6 @@ function App() {
 
   /**
    * effectiveHoursPerDay = window hours − 1 hr lunch
-   * e.g. 08:30–17:30 = 9h window − 1h = 8h effective
    */
   const effectiveHoursPerDay = useMemo(() => {
     const windowHours = (toMinutes(clockOut) - toMinutes(clockIn)) / 60;
@@ -135,10 +153,10 @@ function App() {
     return dailyRate / effectiveHoursPerDay;
   }, [dailyRate, effectiveHoursPerDay]);
 
-  // Per-work-second rate  (based on effective hours only)
+  // Per-work-second rate
   const earningsPerWorkSec = useMemo(() => {
     if (!workSecsPerDay || !dailyRate) return 0;
-    return dailyRate / workSecsPerDay; // = hourlyRate / 3600
+    return dailyRate / workSecsPerDay; 
   }, [dailyRate, workSecsPerDay]);
 
   // Real-time tick
@@ -158,7 +176,7 @@ function App() {
       const CYCLE_MS   = 30 * 24 * 60 * 60 * 1000;
       const cycleStart = payDate - CYCLE_MS;
 
-      // Only count seconds inside effective work window (lunch already excluded)
+      // Only count seconds inside effective work window
       const workedSecs = calcWorkedSeconds(cycleStart, nowMs, inMin, effectiveOutMin);
       const earned     = workedSecs * earningsPerWorkSec;
 
@@ -218,6 +236,7 @@ function App() {
     const d = new Date(); d.setDate(d.getDate() + 30);
     setNextPayDateStr(localDateStr(d));
     ['calc_salary','calc_nextPayDate','calc_clockIn','calc_clockOut'].forEach(k => localStorage.removeItem(k));
+    setShowSettings(false);
   };
 
   const cycleStartLabel = useMemo(() => {
@@ -238,125 +257,178 @@ function App() {
   const decimalsEarned = (earnedAmount % 1).toFixed(4).substring(2);
 
   return (
-    <div className="glass-panel">
+    <>
+      <div className="aurora-bg"></div>
 
-      {/* Live clock */}
-      <div className="live-clock">
-        <div className="live-clock-time">
-          {now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+      <header className="app-header">
+        <h1 className="brand-title">Time is Money</h1>
+        <button className="icon-btn" onClick={() => setShowSettings(true)} aria-label="Settings">
+          <svg viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </header>
+
+      {salary === '' ? (
+        <div className="empty-dashboard">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2>Welcome to your Tracker</h2>
+          <p>Configure your salary and work hours to start seeing real-time earnings.</p>
+          <button className="btn-primary" onClick={() => setShowSettings(true)}>Set Up Tracker</button>
         </div>
-        <div className="live-clock-date">
-          {now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </div>
-      </div>
-
-      <h1 className="title">Time is Money</h1>
-      <p className="subtitle">Real-time earnings — work hours only.</p>
-
-      {/* Salary type */}
-      <div className="form-group">
-        <label className="form-label" htmlFor="salaryType">Salary Type</label>
-        <select id="salaryType" className="input-field" value={salaryType} onChange={handleTypeChange}>
-          <option value="monthly">Monthly</option>
-          <option value="hourly">Hourly</option>
-        </select>
-      </div>
-
-      {/* Salary amount */}
-      <div className="form-group">
-        <label className="form-label" htmlFor="salaryAmount">
-          {salaryType === 'monthly' ? 'Monthly Salary ($)' : 'Hourly Rate ($/hr)'}
-        </label>
-        <input
-          id="salaryAmount" type="number" min="0" step="0.01"
-          className="input-field"
-          placeholder={salaryType === 'monthly' ? 'e.g., 10995' : 'e.g., 45.81'}
-          value={salary} onChange={handleSalaryChange}
-        />
-      </div>
-
-      {/* Work window */}
-      <div className="form-row">
-        <div className="form-group">
-          <label className="form-label" htmlFor="clockIn">Work Start</label>
-          <input id="clockIn" type="time" className="input-field" value={clockIn} onChange={handleClockInChange} />
-        </div>
-        <div className="form-group">
-          <label className="form-label" htmlFor="clockOut">Work End</label>
-          <input id="clockOut" type="time" className="input-field" value={clockOut} onChange={handleClockOutChange} />
-        </div>
-      </div>
-
-      {/* Next payment date */}
-      <div className="form-group">
-        <label className="form-label" htmlFor="nextPayDate">Next Payment Date</label>
-        <input id="nextPayDate" type="date" className="input-field" value={nextPayDateStr} onChange={handlePayDateChange} />
-      </div>
-
-      {/* Rate breakdown */}
-      {salary !== '' && effectiveHoursPerDay > 0 && (
-        <div className="rate-breakdown">
-          <div className="rate-item">
-            <span className="rate-label">Per Hour</span>
-            <span className="rate-value">${hourlyRate.toFixed(2)}</span>
+      ) : (
+        <div className="bento-grid">
+          
+          {/* Main Earnings Card */}
+          <div className="bento-card hero-card">
+            <div className="earnings-label">Earned This Cycle</div>
+            <div className={`earnings-amount ${isWorkingNow ? 'ticking' : ''}`}>
+              <span className="earnings-currency">$</span>
+              <span>{mainEarned.toLocaleString()}</span>
+              <span className="earnings-decimals">.{decimalsEarned}</span>
+            </div>
+            {isWorkingNow && <div style={{marginTop: '1rem', color: 'var(--accent)', fontSize: '0.85rem'}}>+$ {earningsPerWorkSec.toFixed(4)} / sec</div>}
           </div>
-          <div className="rate-divider" />
-          <div className="rate-item">
-            <span className="rate-label">Per Day ({effectiveHoursPerDay}h)</span>
-            <span className="rate-value">${dailyRate.toFixed(2)}</span>
+
+          {/* Countdown Card */}
+          <div className="bento-card">
+            <div className="card-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              Next Payment
+            </div>
+            <div className="card-value" style={{ fontSize: '1.4rem' }}>{formatCountdown(secondsToPayment)}</div>
+            <div className="card-subtext">Payday: {nextPayLabel}</div>
           </div>
-          <div className="rate-divider" />
-          <div className="rate-item">
-            <span className="rate-label">Per Second</span>
-            <span className="rate-value">${earningsPerWorkSec.toFixed(5)}</span>
+
+          {/* Status Card */}
+          <div className="bento-card">
+            <div className="card-label">Current Status</div>
+            <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+              <div className={`status-indicator ${isWorkingNow ? 'status-active' : 'status-idle'}`}>
+                <span className="status-dot"></span>
+                {isWorkingNow ? 'On the Clock' : 'Off the Clock'}
+              </div>
+            </div>
+            <div className="card-subtext">Work window: {clockIn} - {clockOut}</div>
           </div>
+
+          {/* Rate Breakdown Card */}
+          <div className="bento-card">
+             <div className="card-label">Earnings Rate</div>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '0.5rem' }}>
+               <div>
+                 <div className="card-value">${hourlyRate.toFixed(2)}</div>
+                 <div className="card-subtext">per hour</div>
+               </div>
+               <div>
+                 <div className="card-value">${dailyRate.toFixed(2)}</div>
+                 <div className="card-subtext">per day ({(effectiveHoursPerDay).toFixed(1)}h)</div>
+               </div>
+             </div>
+          </div>
+
+          {/* Ethiopian Time Card */}
+          <div className="bento-card">
+             <div className="card-label">Ethiopian Date & Time</div>
+             {ethioTime && ethioDate ? (
+               <div style={{ marginTop: '0.5rem' }}>
+                 <div className="card-value" style={{ fontSize: '1.4rem' }}>
+                   {String(ethioTime.hour).padStart(2,'0')}:{String(ethioTime.minute).padStart(2,'0')}:{String(ethioTime.second).padStart(2,'0')} {ethioTime.period_amharic}
+                 </div>
+                 <div className="card-subtext" style={{ marginTop: '0.5rem' }}>
+                   {ethioDate.day_amharic} ({ethioDate.day_english})
+                   <br/>
+                   {ethioDate.month_amharic} {ethioDate.date}, {ethioDate.year} 
+                 </div>
+               </div>
+             ) : (
+               <div className="card-subtext" style={{ marginTop: '0.5rem' }}>Loading...</div>
+             )}
+          </div>
+
+          {/* Progress Card */}
+          <div className="bento-card">
+             <div className="card-label">Cycle Completion</div>
+             <div className="card-value">{progressPct.toFixed(1)}%</div>
+             
+             <div className="progress-container">
+               <div className="progress-track">
+                 <div className="progress-fill" style={{ width: `${progressPct}%` }}></div>
+               </div>
+               <div className="progress-labels">
+                  <span>{cycleStartLabel}</span>
+                  <span>{nextPayLabel}</span>
+               </div>
+             </div>
+          </div>
+
         </div>
       )}
 
-      {/* On/Off clock status */}
-      {salary !== '' && (
-        <div className={`status-badge ${isWorkingNow ? 'status-active' : 'status-idle'}`}>
-          <span className="status-dot" />
-          {isWorkingNow
-            ? `On the clock — $${earningsPerWorkSec.toFixed(4)}/sec`
-            : `Off the clock · Paused (${clockIn}–${clockOut}, −1h lunch = ${effectiveHoursPerDay}h/day)`}
+      {/* Settings Overlay */}
+      {showSettings && (
+        <div className="settings-overlay">
+          <div className="settings-panel">
+            <div className="settings-header">
+              <h2>Settings</h2>
+              <button className="close-btn" onClick={() => setShowSettings(false)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label" htmlFor="salaryType">Salary Type</label>
+                <select id="salaryType" className="input-field" value={salaryType} onChange={handleTypeChange}>
+                  <option value="monthly">Monthly</option>
+                  <option value="hourly">Hourly</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="salaryAmount">
+                  {salaryType === 'monthly' ? 'Monthly Salary ($)' : 'Hourly Rate ($/hr)'}
+                </label>
+                <input
+                  id="salaryAmount" type="number" min="0" step="0.01"
+                  className="input-field"
+                  placeholder={salaryType === 'monthly' ? 'e.g., 10995' : 'e.g., 45.81'}
+                  value={salary} onChange={handleSalaryChange}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="nextPayDate">Next Payment Date</label>
+              <input id="nextPayDate" type="date" className="input-field" value={nextPayDateStr} onChange={handlePayDateChange} />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label" htmlFor="clockIn">Work Start</label>
+                <input id="clockIn" type="time" className="input-field" value={clockIn} onChange={handleClockInChange} />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="clockOut">Work End</label>
+                <input id="clockOut" type="time" className="input-field" value={clockOut} onChange={handleClockOutChange} />
+              </div>
+            </div>
+
+            <button className="btn-primary btn-block" style={{marginTop: '1.5rem'}} onClick={() => setShowSettings(false)}>
+              Save & Close
+            </button>
+
+            {salary !== '' && (
+              <button className="btn-secondary" onClick={handleReset}>
+                Reset All Data
+              </button>
+            )}
+          </div>
         </div>
       )}
-
-      {/* Cycle progress bar */}
-      {salary !== '' && (
-        <div className="cycle-bar-wrapper">
-          <div className="cycle-dates">
-            <span>{cycleStartLabel}</span>
-            <span>{nextPayLabel}</span>
-          </div>
-          <div className="cycle-bar">
-            <div className="cycle-bar-fill" style={{ width: `${progressPct}%` }} />
-            <div className="cycle-bar-marker" style={{ left: `${Math.min(progressPct, 98)}%` }} />
-          </div>
-          <div className="cycle-pct">{progressPct.toFixed(1)}% of work hours complete</div>
-        </div>
-      )}
-
-      {/* Earnings */}
-      <div className={`earnings-container ${isWorkingNow && salary !== '' ? 'earnings-ticking' : ''}`}>
-        <div className="earnings-label">Earned This Cycle</div>
-        <div className="earnings-amount">
-          <span className="earnings-currency">$</span>
-          <span>{mainEarned.toLocaleString()}</span>
-          <span className="earnings-decimals">.{decimalsEarned}</span>
-        </div>
-        {salary !== '' && (
-          <div className="countdown-badge">
-            ⏳ Next payment in: <strong>{formatCountdown(secondsToPayment)}</strong>
-          </div>
-        )}
-      </div>
-
-      {salary !== '' && (
-        <button className="reset-button" onClick={handleReset}>Reset Session</button>
-      )}
-    </div>
+    </>
   );
 }
 
