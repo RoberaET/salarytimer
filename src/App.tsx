@@ -73,9 +73,17 @@ const ETH_MONTHS = [
 ];
 
 function EthiopianConverterCard() {
-  const [ethYear, setEthYear] = useState<number>(2017);
-  const [ethMonth, setEthMonth] = useState<number>(1);
-  const [ethDay, setEthDay] = useState<number>(1);
+  const initial = useMemo(() => {
+    try {
+      return EthDateTime.fromEuropeanDate(new Date());
+    } catch {
+      return { year: 2017, month: 1, date: 1 };
+    }
+  }, []);
+
+  const [ethYear, setEthYear] = useState<number>(initial.year);
+  const [ethMonth, setEthMonth] = useState<number>(initial.month);
+  const [ethDay, setEthDay] = useState<number>(initial.date);
 
   const gregorianDateStr = useMemo(() => {
     try {
