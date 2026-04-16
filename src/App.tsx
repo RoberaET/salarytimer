@@ -450,7 +450,7 @@ function App() {
                 <input
                   id="salaryAmount" type="number" min="0" step="0.01"
                   className="input-field"
-                  placeholder={salaryType === 'monthly' ? 'e.g., 10995' : 'e.g., 45.81'}
+                  placeholder={salaryType === 'monthly' ? 'e.g., 15000' : 'e.g., 45.81'}
                   value={salary} onChange={handleSalaryChange}
                 />
               </div>
