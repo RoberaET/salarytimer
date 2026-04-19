@@ -26,18 +26,25 @@ function toMinutes(t: string): number {
   return h * 60 + m;
 }
 
+// Saturday fixed window: 08:30 – 12:30 (no lunch deduction)
+const SAT_IN_MIN  = 8 * 60 + 30;  // 510
+const SAT_OUT_MIN = 12 * 60 + 30; // 750
+const SAT_HOURS   = (SAT_OUT_MIN - SAT_IN_MIN) / 60; // 4
+
 /**
- * Sum only seconds inside the daily work window [clockInMin, effectiveOutMin],
- * walking day by day from cycleStartMs to nowMs.
- * effectiveOutMin already accounts for lunch (clockOut - 60 min).
+ * Sum only seconds inside the daily work window, walking day by day.
+ * Rules:
+ *   Sunday  (0) → skip (no work)
+ *   Saturday (6) → fixed 08:30–12:30 window (4 h, no lunch)
+ *   Mon–Fri      → [clockInMin, effectiveOutMin] (lunch already deducted)
  */
 function calcWorkedSeconds(
   cycleStartMs: number,
   nowMs: number,
   clockInMin: number,
-  effectiveOutMin: number  // already lunch-adjusted
+  effectiveOutMin: number  // already lunch-adjusted for weekdays
 ): number {
-  if (effectiveOutMin <= clockInMin || nowMs <= cycleStartMs) return 0;
+  if (nowMs <= cycleStartMs) return 0;
 
   const d0 = new Date(cycleStartMs);
   let dayMidnight = new Date(
@@ -49,13 +56,20 @@ function calcWorkedSeconds(
   const startMidnight = dayMidnight;
 
   while (dayMidnight <= nowMs) {
-    const workStart = dayMidnight + clockInMin      * 60_000;
-    const workEnd   = dayMidnight + effectiveOutMin * 60_000;
+    const dow = new Date(dayMidnight).getDay(); // 0=Sun … 6=Sat
 
-    const from = Math.max(workStart, cycleStartMs);
-    const to   = Math.min(workEnd,   nowMs);
+    if (dow !== 0) { // skip Sunday entirely
+      const inMin  = dow === 6 ? SAT_IN_MIN  : clockInMin;
+      const outMin = dow === 6 ? SAT_OUT_MIN : effectiveOutMin;
 
-    if (to > from) total += (to - from) / 1000;
+      if (outMin > inMin) {
+        const workStart = dayMidnight + inMin  * 60_000;
+        const workEnd   = dayMidnight + outMin * 60_000;
+        const from = Math.max(workStart, cycleStartMs);
+        const to   = Math.min(workEnd,   nowMs);
+        if (to > from) total += (to - from) / 1000;
+      }
+    }
 
     dayMidnight += ONE_DAY;
     if (dayMidnight - startMidnight > 32 * ONE_DAY) break;
@@ -190,27 +204,40 @@ function App() {
     return toMinutes(clockIn) + effectiveHoursPerDay * 60;
   }, [clockIn, effectiveHoursPerDay]);
 
-  // How many effective work-seconds count per day
-  const workSecsPerDay = useMemo(() => effectiveHoursPerDay * 3600, [effectiveHoursPerDay]);
+  /**
+   * Average work-hours per calendar day across a full week:
+   *   5 weekdays × effectiveHoursPerDay  +  1 Saturday × 4h  +  0 Sunday
+   *   divided by 7 calendar days
+   * Used for monthly-salary prorating.
+   */
+  const avgHoursPerCalendarDay = useMemo(() => {
+    return (5 * effectiveHoursPerDay + SAT_HOURS) / 7;
+  }, [effectiveHoursPerDay]);
 
-  // Daily rate
+  // Total work-seconds in a 30-day cycle
+  const totalCycleWorkSecs = useMemo(() => {
+    return avgHoursPerCalendarDay * 30 * 3600;
+  }, [avgHoursPerCalendarDay]);
+
+  // Daily rate (average calendar-day)
   const dailyRate = useMemo(() => {
     if (!salary) return 0;
-    if (salaryType === 'hourly') return (salary as number) * effectiveHoursPerDay;
+    if (salaryType === 'hourly') return (salary as number) * avgHoursPerCalendarDay;
     return (salary as number) / 30;
-  }, [salary, salaryType, effectiveHoursPerDay]);
+  }, [salary, salaryType, avgHoursPerCalendarDay]);
 
-  // Hourly rate = dailyRate / effective hours
+  // Hourly rate (based on average daily hours)
   const hourlyRate = useMemo(() => {
-    if (!effectiveHoursPerDay || !dailyRate) return 0;
-    return dailyRate / effectiveHoursPerDay;
-  }, [dailyRate, effectiveHoursPerDay]);
+    if (!avgHoursPerCalendarDay || !dailyRate) return 0;
+    return dailyRate / avgHoursPerCalendarDay;
+  }, [dailyRate, avgHoursPerCalendarDay]);
 
   // Per-work-second rate
   const earningsPerWorkSec = useMemo(() => {
-    if (!workSecsPerDay || !dailyRate) return 0;
-    return dailyRate / workSecsPerDay; 
-  }, [dailyRate, workSecsPerDay]);
+    if (!totalCycleWorkSecs || !salary) return 0;
+    const totalSalary = salaryType === 'monthly' ? (salary as number) : (salary as number) * avgHoursPerCalendarDay * 30;
+    return totalSalary / totalCycleWorkSecs;
+  }, [salary, salaryType, totalCycleWorkSecs, avgHoursPerCalendarDay]);
 
   // Real-time tick
   useEffect(() => {
@@ -233,16 +260,22 @@ function App() {
       const workedSecs = calcWorkedSeconds(cycleStart, nowMs, inMin, effectiveOutMin);
       const earned     = workedSecs * earningsPerWorkSec;
 
-      const remaining     = Math.max(0, (payDate - nowMs) / 1000);
-      const totalWorkSecs = 30 * workSecsPerDay;
-      const pct = totalWorkSecs > 0
-        ? Math.min(100, (workedSecs / totalWorkSecs) * 100)
+      const remaining = Math.max(0, (payDate - nowMs) / 1000);
+      // True progress = how much of the 30-day calendar window has elapsed
+      const cycleTotalMs = payDate - cycleStart;
+      const pct = cycleTotalMs > 0
+        ? Math.min(100, Math.max(0, (nowMs - cycleStart) / cycleTotalMs * 100))
         : 0;
 
       // Status: are we inside the effective work window right now?
-      const d         = new Date(nowMs);
-      const nowMin    = d.getHours() * 60 + d.getMinutes();
-      const working   = nowMin >= inMin && nowMin < effectiveOutMin;
+      const d      = new Date(nowMs);
+      const dow    = d.getDay(); // 0=Sun, 6=Sat
+      const nowMin = d.getHours() * 60 + d.getMinutes();
+      const working =
+        dow !== 0 && // not Sunday
+        (dow === 6
+          ? nowMin >= SAT_IN_MIN && nowMin < SAT_OUT_MIN          // Saturday 08:30–12:30
+          : nowMin >= inMin && nowMin < effectiveOutMin);          // weekday window
 
       setEarnedAmount(earned);
       setSecondsToPayment(remaining);
@@ -253,7 +286,7 @@ function App() {
     tick();
     const iv = setInterval(tick, 100);
     return () => clearInterval(iv);
-  }, [nextPayDateStr, earningsPerWorkSec, salary, clockIn, effectiveOutMin, effectiveHoursPerDay, workSecsPerDay]);
+  }, [nextPayDateStr, earningsPerWorkSec, salary, clockIn, effectiveOutMin, effectiveHoursPerDay, totalCycleWorkSecs]);
 
   // Handlers
   const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -407,12 +440,12 @@ function App() {
 
           {/* Progress Card */}
           <div className="bento-card">
-             <div className="card-label">Cycle Completion</div>
-             <div className="card-value">{progressPct.toFixed(1)}%</div>
+             <div className="card-label">Cycle Remaining</div>
+             <div className="card-value">{(100 - progressPct).toFixed(1)}%</div>
              
              <div className="progress-container">
                <div className="progress-track">
-                 <div className="progress-fill" style={{ width: `${progressPct}%` }}></div>
+                 <div className="progress-fill" style={{ width: `${100 - progressPct}%` }}></div>
                </div>
                <div className="progress-labels">
                   <span>{cycleStartLabel}</span>

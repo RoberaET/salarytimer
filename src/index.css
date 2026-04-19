@@ -1,17 +1,23 @@
 :root {
-  --hue-1: 260; /* Purple */
-  --hue-2: 190; /* Cyan */
-  --hue-3: 320; /* Pink */
-  
-  --bg-color: #030712; /* Deep background (gray-950) */
-  --glass-bg: rgba(17, 24, 39, 0.4); /* Glass gray-900 */
+  --hue-1: 260;
+  /* Purple */
+  --hue-2: 190;
+  /* Cyan */
+  --hue-3: 320;
+  /* Pink */
+
+  --bg-color: #030712;
+  /* Deep background (gray-950) */
+  --glass-bg: rgba(17, 24, 39, 0.4);
+  /* Glass gray-900 */
   --glass-bg-hover: rgba(17, 24, 39, 0.6);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-border-highlight: rgba(255, 255, 255, 0.15);
-  
+
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --accent: #06b6d4; /* Cyan accent */
+  --accent: #06b6d4;
+  /* Cyan accent */
   --accent-glow: rgba(6, 182, 212, 0.4);
   --success: #10b981;
   --danger: #ef4444;
@@ -31,7 +37,8 @@ body {
   min-height: 100dvh;
   display: flex;
   justify-content: center;
-  overflow-x: hidden; /* Prevent horizontal scroll, allow vertical natively */
+  overflow-x: hidden;
+  /* Prevent horizontal scroll, allow vertical natively */
   position: relative;
 }
 
@@ -44,7 +51,7 @@ body {
   bottom: 0;
   z-index: -1;
   background-color: var(--bg-color);
-  background-image: 
+  background-image:
     radial-gradient(circle at 10% 20%, hsla(var(--hue-1), 70%, 50%, 0.15) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, hsla(var(--hue-2), 70%, 50%, 0.15) 0%, transparent 40%),
     radial-gradient(circle at 50% 50%, hsla(var(--hue-3), 70%, 50%, 0.1) 0%, transparent 50%);
@@ -53,20 +60,30 @@ body {
 }
 
 @keyframes aurora-shift {
-  0%   { transform: scale(1) translate(0px, 0px); }
-  50%  { transform: scale(1.1) translate(30px, -30px); }
-  100% { transform: scale(1) translate(-20px, 20px); }
+  0% {
+    transform: scale(1) translate(0px, 0px);
+  }
+
+  50% {
+    transform: scale(1.1) translate(30px, -30px);
+  }
+
+  100% {
+    transform: scale(1) translate(-20px, 20px);
+  }
 }
 
 /* Base Wrapper */
 #root {
   width: 100%;
-  max-width: 800px; /* Slightly wider for the dashboard grid */
+  max-width: 800px;
+  /* Slightly wider for the dashboard grid */
   min-height: 100dvh;
   padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Vertically center the dashboard when window is tall */
+  justify-content: center;
+  /* Vertically center the dashboard when window is tall */
 }
 
 /* 🏷️ Header Area */
@@ -226,7 +243,7 @@ body {
   border-radius: 99px;
   font-size: 0.8rem;
   font-weight: 600;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .status-active {
@@ -326,7 +343,10 @@ body {
 /* ⚙️ Settings Overlay (Modal / Slide-over) */
 .settings-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(3, 7, 18, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -345,7 +365,7 @@ body {
   width: 100%;
   max-width: 500px;
   padding: 2.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   max-height: 90vh;
   overflow-y: auto;
@@ -364,18 +384,21 @@ body {
 }
 
 .close-btn {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   border: none;
   color: var(--text-muted);
-  width: 36px; height: 36px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  display: flex; justify-content: center; align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .close-btn:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--text-main);
 }
 
@@ -403,7 +426,7 @@ body {
 
 .input-field {
   width: 100%;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--glass-border);
   color: var(--text-main);
   padding: 1rem;
@@ -468,26 +491,28 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     padding: 1rem;
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
-  
+
   .bento-grid {
-    grid-template-columns: 1fr; /* Single column on mobile */
+    grid-template-columns: 1fr;
+    /* Single column on mobile */
     gap: 1rem;
   }
-  
+
   .hero-card {
     grid-column: span 1;
     padding: 2rem 1rem;
   }
-  
+
   .earnings-amount {
     font-size: clamp(2.5rem, 12vw, 3.5rem);
     flex-wrap: wrap;
   }
 
-  .earnings-currency, .earnings-decimals {
+  .earnings-currency,
+  .earnings-decimals {
     font-size: clamp(1.5rem, 8vw, 2.5rem);
   }
-  
+
   .settings-overlay {
     padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)) 1rem;
   }
@@ -498,7 +523,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     border-radius: 20px;
     margin: 0 auto;
   }
-  
+
   .form-row {
     flex-direction: column;
     gap: 0;
@@ -507,31 +532,73 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 
 /* Animations */
 @keyframes fade-down {
-  from { opacity: 0; transform: translateY(-15px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; backdrop-filter: blur(0); }
-  to { opacity: 1; backdrop-filter: blur(8px); }
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(40px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 @keyframes subtle-pulse {
-  0%, 100% { text-shadow: 0 0 30px var(--accent-glow); }
-  50% { text-shadow: 0 0 50px rgba(6, 182, 212, 0.7); }
+
+  0%,
+  100% {
+    text-shadow: 0 0 30px var(--accent-glow);
+  }
+
+  50% {
+    text-shadow: 0 0 50px rgba(6, 182, 212, 0.7);
+  }
 }
