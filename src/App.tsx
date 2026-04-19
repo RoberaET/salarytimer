@@ -174,7 +174,7 @@ function EthiopianConverterCard() {
   );
 }
 
-function OvertimeCard({ hourlyRate, isTodayMissed, overtimeAccumulated, activeOvertimeSession, overtimeLive, setOvertimeAccumulated, setActiveOvertimeSession }: any) {
+function OvertimeCard({ isTodayMissed, overtimeAccumulated, activeOvertimeSession, overtimeLive, setOvertimeAccumulated, setActiveOvertimeSession }: any) {
   const [otStartTime, setOtStartTime] = useState<string>(
     `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`
   );
