@@ -201,6 +201,13 @@ function OvertimeCard({ hourlyRate, isTodayMissed, overtimeAccumulated, activeOv
     localStorage.removeItem('calc_ot_session');
   };
 
+  const handleResetOT = () => {
+    setOvertimeAccumulated(0);
+    setActiveOvertimeSession(null);
+    localStorage.removeItem('calc_ot_acc');
+    localStorage.removeItem('calc_ot_session');
+  };
+
   return (
     <div className="bento-card hero-card" style={{ background: activeOvertimeSession ? 'linear-gradient(135deg, rgba(8, 145, 178, 0.1), rgba(139, 92, 246, 0.1))' : undefined, border: activeOvertimeSession ? '1px solid rgba(139, 92, 246, 0.3)' : undefined }}>
       <div className="card-label">Overtime Tracker</div>
@@ -235,9 +242,14 @@ function OvertimeCard({ hourlyRate, isTodayMissed, overtimeAccumulated, activeOv
       </div>
 
       {(overtimeAccumulated > 0 || !activeOvertimeSession) && (
-        <div style={{ marginTop: '1.2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.8rem' }}>
-          <div className="card-subtext">Total OT Earned this Cycle</div>
-          <div className="card-value" style={{fontSize: '1.2rem', color: 'var(--success)'}}>${overtimeAccumulated.toFixed(2)}</div>
+        <div style={{ marginTop: '1.2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div className="card-subtext">Total OT Earned this Cycle</div>
+            <div className="card-value" style={{fontSize: '1.2rem', color: 'var(--success)'}}>${overtimeAccumulated.toFixed(2)}</div>
+          </div>
+          <button className="icon-btn" style={{ padding: '0.4rem', color: 'rgba(255,255,255,0.5)' }} onClick={handleResetOT} aria-label="Reset Overtime" title="Clear Overtime Data">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
         </div>
       )}
     </div>
