@@ -1226,12 +1226,12 @@ function App() {
               gap: '1rem'
             }}>
                <div style={{ textAlign: 'left', flex: 1, padding: '0.5rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px' }}>
-                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>I Made Today</div>
-                 <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--success)' }}>ETB {todayNet.toFixed(2)}</div>
+                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Net This Cycle</div>
+                 <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--success)' }}>ETB {(mainTotalEarned * taxInfo.netRatio).toFixed(2)}</div>
                </div>
                <div style={{ textAlign: 'right', flex: 1, padding: '0.5rem', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '12px' }}>
-                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Gov't Took Today</div>
-                 <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--danger)' }}>ETB {todayGov.toFixed(2)}</div>
+                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Gov't Tax & Pension</div>
+                 <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--danger)' }}>ETB {(mainTotalEarned * taxInfo.deductionRatio).toFixed(2)}</div>
                </div>
             </div>
           </div>
