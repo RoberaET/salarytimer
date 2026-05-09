@@ -7,14 +7,20 @@ import { generateOTPdf } from './generateOTPdf';
 type SalaryType = 'hourly' | 'monthly';
 
 function formatCountdown(totalSeconds: number): string {
-  if (totalSeconds <= 0) return 'Payment Day! 🎉';
-  const d = Math.floor(totalSeconds / 86400);
-  const h = Math.floor((totalSeconds % 86400) / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = Math.floor(totalSeconds % 60);
-  if (d > 0) return `${d}d ${h}h ${m}m ${s}s`;
-  if (h > 0) return `${h}h ${m}m ${s}s`;
-  return `${m}m ${s}s`;
+  if (totalSeconds > 0) {
+    const d = Math.floor(totalSeconds / 86400);
+    const h = Math.floor((totalSeconds % 86400) / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = Math.floor(totalSeconds % 60);
+    if (d > 0) return `${d}d ${h}h ${m}m ${s}s`;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
+  } else {
+    const passedSecs = Math.abs(totalSeconds);
+    const d = Math.floor(passedSecs / 86400);
+    if (d === 0) return 'Payment Day! 🎉';
+    return `Payment Day passed ${d} day${d !== 1 ? 's' : ''}`;
+  }
 }
 
 function localDateStr(date: Date): string {
@@ -1018,7 +1024,7 @@ function App() {
       const totalSalaryForCycle = salaryType === 'monthly' ? (salary as number) : (salary as number) * effectiveHoursPerDay * 30;
       const earned     = Math.min(workedSecs * earningsPerWorkSec, totalSalaryForCycle);
 
-      const remaining = Math.max(0, (payDate - nowMs) / 1000);
+      const remaining = (payDate - nowMs) / 1000;
       // True progress = how much of the 30-day calendar window has elapsed
       const cycleTotalMs = payDate - cycleStart;
       const pct = cycleTotalMs > 0
@@ -1074,6 +1080,16 @@ function App() {
     const val = e.target.value;
     setNextPayDateStr(val);
     val ? localStorage.setItem('calc_nextPayDate', val) : localStorage.removeItem('calc_nextPayDate');
+  };
+
+  const handleGotPaid = () => {
+    if (!nextPayDateStr) return;
+    const [yr, mo, dy] = nextPayDateStr.split('-').map(Number);
+    // Add 30 days to previous pay date to strictly enforce the cycle length
+    const nextDate = new Date(yr, mo - 1, dy + 30);
+    const nextStr = localDateStr(nextDate);
+    setNextPayDateStr(nextStr);
+    localStorage.setItem('calc_nextPayDate', nextStr);
   };
 
   const handleClockInChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1224,8 +1240,20 @@ function App() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               Next Payment
             </div>
-            <div className="card-value" style={{ fontSize: '1.4rem' }}>{formatCountdown(secondsToPayment)}</div>
+            <div className={`card-value ${secondsToPayment <= 0 ? 'text-success' : ''}`} style={{ fontSize: '1.4rem' }}>
+              {formatCountdown(secondsToPayment)}
+            </div>
             <div className="card-subtext">Payday: {nextPayLabel}</div>
+            
+            {secondsToPayment <= 0 && (
+              <button 
+                onClick={handleGotPaid}
+                className="btn-primary" 
+                style={{ marginTop: '1rem', width: '100%', fontSize: '0.9rem', padding: '0.6rem', background: 'var(--success)' }}
+              >
+                Did you get paid? ✓
+              </button>
+            )}
           </div>
 
           {/* Status Card */}
