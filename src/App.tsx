@@ -28,6 +28,44 @@ function toMinutes(t: string): number {
   return h * 60 + m;
 }
 
+// -------------------------------------------------------------
+// Ethiopian Tax & Pension Calculation Engine
+// -------------------------------------------------------------
+function calculateEthiopianTaxAndPension(monthlyGross: number) {
+  const pension = monthlyGross * 0.07;
+  let tax = 0;
+  
+  if (monthlyGross <= 600) {
+    tax = 0;
+  } else if (monthlyGross <= 1650) {
+    tax = (monthlyGross * 0.10) - 60;
+  } else if (monthlyGross <= 3200) {
+    tax = (monthlyGross * 0.15) - 142.50;
+  } else if (monthlyGross <= 5250) {
+    tax = (monthlyGross * 0.20) - 302.50;
+  } else if (monthlyGross <= 7800) {
+    tax = (monthlyGross * 0.25) - 565;
+  } else if (monthlyGross <= 10900) {
+    tax = (monthlyGross * 0.30) - 955;
+  } else {
+    tax = (monthlyGross * 0.35) - 1500;
+  }
+  
+  tax = Math.max(0, tax);
+  const totalDeduction = pension + tax;
+  const netIncome = monthlyGross - totalDeduction;
+  
+  return {
+    gross: monthlyGross,
+    pension,
+    tax,
+    totalDeduction,
+    netIncome,
+    netRatio: monthlyGross > 0 ? netIncome / monthlyGross : 1,
+    deductionRatio: monthlyGross > 0 ? totalDeduction / monthlyGross : 0
+  };
+}
+
 /**
  * Sum only seconds inside the daily work window, walking day by day.
  * Rules:
