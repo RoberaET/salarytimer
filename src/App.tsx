@@ -818,6 +818,7 @@ function App() {
   });
 
   const [earnedAmount,     setEarnedAmount]     = useState<number>(0);
+  const [todayGross,       setTodayGross]       = useState<number>(0);
   const [secondsToPayment, setSecondsToPayment] = useState<number>(0);
   const [progressPct,      setProgressPct]      = useState<number>(0);
   const [isWorkingNow,     setIsWorkingNow]      = useState<boolean>(false);
@@ -979,7 +980,17 @@ function App() {
         }
       }
 
+      // Today's Gross
+      const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+      const countUpToToday = Math.min(nowMs, payDate); // Don't count beyond paydate
+      let tGross = 0;
+      if (countUpToToday > startOfDay) {
+         const todayWorkedSecs = calcWorkedSeconds(startOfDay, countUpToToday, inMin, effectiveOutMin, missedDates);
+         tGross = Math.min(todayWorkedSecs * earningsPerWorkSec, totalSalaryForCycle);
+      }
+
       setEarnedAmount(earned);
+      setTodayGross(tGross);
       setOvertimeLive(currentOt);
       setSecondsToPayment(remaining);
       setProgressPct(pct);
@@ -1059,9 +1070,23 @@ function App() {
       .toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }, [nextPayDateStr]);
 
+  const totalSalaryForCycle = salaryType === 'monthly' ? parseFloat(salary as string || '0') : parseFloat(salary as string || '0') * effectiveHoursPerDay * 30;
+  const taxInfo = calculateEthiopianTaxAndPension(totalSalaryForCycle);
+
   const mainTotalEarned = earnedAmount + overtimeAccumulated + overtimeLive;
-  const mainEarned     = Math.floor(mainTotalEarned);
-  const decimalsEarned = (mainTotalEarned % 1).toFixed(4).substring(2);
+  const mainNet = mainTotalEarned * taxInfo.netRatio;
+  
+  const mainEarned     = Math.floor(mainNet);
+  const decimalsEarned = (mainNet % 1).toFixed(4).substring(2);
+
+  const todayGrossTotal = todayGross + overtimeLive;
+  const todayNet = todayGrossTotal * taxInfo.netRatio;
+  const todayGov = todayGrossTotal * taxInfo.deductionRatio;
+  
+  // Rate calculations
+  const grossSecRate = (isWorkingNow ? earningsPerWorkSec : 0) + 
+    (activeOvertimeSession ? (hourlyRate / 3600) * (activeOvertimeSession.multiplierMode === 'auto' ? getDefaultOvertimeMultiplier(new Date(), isTodayMissed) : activeOvertimeSession.multiplierMode) : 0);
+  const netSecRate = grossSecRate * taxInfo.netRatio;
 
   return (
     <>
@@ -1074,8 +1099,8 @@ function App() {
             className="icon-btn" 
             style={isTodayMissed ? { color: 'var(--danger, #f87171)', borderColor: 'var(--danger, #f87171)', background: 'rgba(248, 113, 113, 0.1)' } : {}}
             onClick={toggleHolidayToday} 
-            aria-label="Toggle Holiday" 
-            title={isTodayMissed ? "Resume Work (Undo Holiday)" : "Mark Today as Holiday"}
+            aria-label="Toggle Leave" 
+            title={isTodayMissed ? "Resume Work (Undo Leave)" : "Mark as Unpaid Leave"}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {isTodayMissed ? (
@@ -1117,22 +1142,35 @@ function App() {
           
           {/* Main Earnings Card */}
           <div className="bento-card hero-card">
-            <div className="earnings-label">Earned This Cycle (Total)</div>
+            <div className="earnings-label">Net Earned This Cycle</div>
             <div className={`earnings-amount ${isWorkingNow || activeOvertimeSession ? 'ticking' : ''}`}>
-              <span className="earnings-currency">$</span>
+              <span className="earnings-currency">ETB</span>
               <span>{mainEarned.toLocaleString()}</span>
               <span className="earnings-decimals">.{decimalsEarned}</span>
             </div>
             {(isWorkingNow || activeOvertimeSession) && (
-              <div style={{marginTop: '1rem', color: 'var(--accent)', fontSize: '0.85rem'}}>
-                +$ {(
-                  (isWorkingNow ? earningsPerWorkSec : 0) + 
-                  (activeOvertimeSession 
-                    ? (hourlyRate / 3600) * (activeOvertimeSession.multiplierMode === 'auto' ? getDefaultOvertimeMultiplier(new Date(), isTodayMissed) : activeOvertimeSession.multiplierMode)
-                    : 0)
-                ).toFixed(4)} / sec
+              <div style={{marginTop: '0.5rem', color: 'var(--accent)', fontSize: '0.9rem'}}>
+                + ETB {netSecRate.toFixed(4)} / sec (Net)
               </div>
             )}
+            
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              marginTop: '2rem', 
+              borderTop: '1px solid rgba(255,255,255,0.1)', 
+              paddingTop: '1rem',
+              gap: '1rem'
+            }}>
+               <div style={{ textAlign: 'left', flex: 1, padding: '0.5rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px' }}>
+                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>I Made Today</div>
+                 <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--success)' }}>ETB {todayNet.toFixed(2)}</div>
+               </div>
+               <div style={{ textAlign: 'right', flex: 1, padding: '0.5rem', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '12px' }}>
+                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Gov't Took Today</div>
+                 <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--danger)' }}>ETB {todayGov.toFixed(2)}</div>
+               </div>
+            </div>
           </div>
           <div className="bento-card">
             <div className="card-label">
@@ -1157,15 +1195,15 @@ function App() {
 
           {/* Rate Breakdown Card */}
           <div className="bento-card">
-             <div className="card-label">Earnings Rate</div>
+             <div className="card-label">Earnings Rate (Gross vs Net)</div>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '0.5rem' }}>
                <div>
-                 <div className="card-value">${hourlyRate.toFixed(2)}</div>
-                 <div className="card-subtext">per hour</div>
+                 <div className="card-value">ETB {hourlyRate.toFixed(2)}</div>
+                 <div className="card-subtext">Gross / hour</div>
                </div>
                <div>
-                 <div className="card-value">${dailyRate.toFixed(2)}</div>
-                 <div className="card-subtext">per day ({(effectiveHoursPerDay).toFixed(1)}h)</div>
+                 <div className="card-value">ETB {(hourlyRate * taxInfo.netRatio).toFixed(2)}</div>
+                 <div className="card-subtext">Net / hour</div>
                </div>
              </div>
           </div>
