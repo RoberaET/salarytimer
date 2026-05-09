@@ -882,7 +882,6 @@ function App() {
   });
 
   const [earnedAmount,     setEarnedAmount]     = useState<number>(0);
-  const [todayGross,       setTodayGross]       = useState<number>(0);
   const [secondsToPayment, setSecondsToPayment] = useState<number>(0);
   const [progressPct,      setProgressPct]      = useState<number>(0);
   const [isWorkingNow,     setIsWorkingNow]      = useState<boolean>(false);
@@ -1044,17 +1043,7 @@ function App() {
         }
       }
 
-      // Today's Gross
-      const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
-      const countUpToToday = Math.min(nowMs, payDate); // Don't count beyond paydate
-      let tGross = 0;
-      if (countUpToToday > startOfDay) {
-         const todayWorkedSecs = calcWorkedSeconds(startOfDay, countUpToToday, inMin, effectiveOutMin, missedDates);
-         tGross = Math.min(todayWorkedSecs * earningsPerWorkSec, totalSalaryForCycle);
-      }
-
       setEarnedAmount(earned);
-      setTodayGross(tGross);
       setOvertimeLive(currentOt);
       setSecondsToPayment(remaining);
       setProgressPct(pct);
