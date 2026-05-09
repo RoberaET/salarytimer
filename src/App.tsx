@@ -888,6 +888,7 @@ function App() {
   });
 
   const [earnedAmount,     setEarnedAmount]     = useState<number>(0);
+  const [syncTokenInput,   setSyncTokenInput]   = useState<string>('');
   const [secondsToPayment, setSecondsToPayment] = useState<number>(0);
   const [progressPct,      setProgressPct]      = useState<number>(0);
   const [isWorkingNow,     setIsWorkingNow]      = useState<boolean>(false);
@@ -1110,6 +1111,45 @@ function App() {
     setOtHistory([]);
     ['calc_salary','calc_nextPayDate','calc_clockIn','calc_clockOut','calc_missedDates','calc_ot_acc','calc_ot_session','calc_ot_history'].forEach(k => localStorage.removeItem(k));
     setShowSettings(false);
+  };
+
+  const handleExportSync = () => {
+    const data: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('calc_')) {
+        data[key] = localStorage.getItem(key) || '';
+      }
+    }
+    const token = btoa(encodeURIComponent(JSON.stringify(data)));
+    navigator.clipboard.writeText(token).then(() => {
+      alert("Sync Token copied to clipboard! Send this to your other device.");
+    }).catch(() => {
+      prompt("Copy this token to sync your devices:", token);
+    });
+  };
+
+  const handleImportSync = () => {
+    if (!syncTokenInput.trim()) return;
+    try {
+      const json = decodeURIComponent(atob(syncTokenInput.trim()));
+      const data = JSON.parse(json);
+      let importedCount = 0;
+      for (const key in data) {
+        if (key.startsWith('calc_')) {
+          localStorage.setItem(key, data[key]);
+          importedCount++;
+        }
+      }
+      if (importedCount > 0) {
+        alert("Sync successful! The app will now reload.");
+        window.location.reload();
+      } else {
+        alert("Invalid token format.");
+      }
+    } catch (e) {
+      alert("Failed to parse Sync Token. Ensure you copied the full token block.");
+    }
   };
 
   const toggleHolidayToday = () => {
@@ -1457,6 +1497,32 @@ function App() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Device Sync UI */}
+            <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+               <h3 style={{ fontSize: '1.1rem', margin: '0 0 1rem 0', color: 'var(--text-main)' }}>Cross-Device Sync</h3>
+               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: '1.4' }}>
+                 Export your data to a secure token to use on another device, or import a token here.
+               </p>
+               
+               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                 <input 
+                   type="text" 
+                   className="input-field" 
+                   placeholder="Paste sync token here..." 
+                   value={syncTokenInput}
+                   onChange={e => setSyncTokenInput(e.target.value)}
+                   style={{ flex: 1, padding: '0.6rem', fontSize: '0.85rem' }}
+                 />
+                 <button className="btn-primary" onClick={handleImportSync} style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#3b82f6', border: 'none' }}>
+                   Import
+                 </button>
+               </div>
+               
+               <button className="btn-secondary" onClick={handleExportSync} style={{ width: '100%', fontSize: '0.85rem', padding: '0.6rem' }}>
+                 Generate & Copy Sync Token
+               </button>
             </div>
 
             <button className="btn-primary btn-block" style={{marginTop: '1.5rem'}} onClick={() => setShowSettings(false)}>
