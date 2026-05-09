@@ -1138,10 +1138,9 @@ function App() {
   const taxInfo = calculateEthiopianTaxAndPension(totalSalaryForCycle);
 
   const mainTotalEarned = earnedAmount + overtimeAccumulated + overtimeLive;
-  const mainNet = mainTotalEarned * taxInfo.netRatio;
   
-  const mainEarned     = Math.floor(mainNet);
-  const decimalsEarned = (mainNet % 1).toFixed(4).substring(2);
+  const mainEarned     = Math.floor(mainTotalEarned);
+  const decimalsEarned = (mainTotalEarned % 1).toFixed(4).substring(2);
 
   const todayGrossTotal = todayGross + overtimeLive;
   const todayNet = todayGrossTotal * taxInfo.netRatio;
@@ -1206,7 +1205,7 @@ function App() {
           
           {/* Main Earnings Card */}
           <div className="bento-card hero-card">
-            <div className="earnings-label">Net Earned This Cycle</div>
+            <div className="earnings-label">Total Earned This Cycle (Gross)</div>
             <div className={`earnings-amount ${isWorkingNow || activeOvertimeSession ? 'ticking' : ''}`}>
               <span className="earnings-currency">ETB</span>
               <span>{mainEarned.toLocaleString()}</span>
@@ -1214,7 +1213,7 @@ function App() {
             </div>
             {(isWorkingNow || activeOvertimeSession) && (
               <div style={{marginTop: '0.5rem', color: 'var(--accent)', fontSize: '0.9rem'}}>
-                + ETB {netSecRate.toFixed(4)} / sec (Net)
+                + ETB {grossSecRate.toFixed(4)} / sec (Gross)
               </div>
             )}
             
