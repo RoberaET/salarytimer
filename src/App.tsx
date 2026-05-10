@@ -485,7 +485,7 @@ function ExportPdfModal({ onClose, otHistory, setOtHistory }: {
     return `${hrs}:${String(mins).padStart(2, '0')}`;
   }, [recordsToExport]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (recordsToExport.length === 0) {
       setError('No overtime records available to export.');
       return;
@@ -501,8 +501,8 @@ function ExportPdfModal({ onClose, otHistory, setOtHistory }: {
 
     localStorage.setItem('calc_employee_name', employeeName);
 
-    // Call PDF generator
-    generateOTPdf(employeeName, workPerformed, estimatedHours, recordsToExport);
+    // Call PDF generator — must await so errors surface and Android share fires
+    await generateOTPdf(employeeName, workPerformed, estimatedHours, recordsToExport);
 
     // Optionally mark all as filed
     if (markFiled) {

@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 
 export interface OvertimeRecord {
@@ -203,34 +204,34 @@ export async function generateOTPdf(
   const filename = `OT_Work_Order_${new Date().toISOString().split('T')[0]}.pdf`;
 
   if (Capacitor.isNativePlatform()) {
-    // ── Android / iOS ──────────────────────────────────────────────────────────
-    // Capacitor cannot trigger browser downloads. Save to device storage instead
-    // and open the file so the user can share / print it.
+    // ── Android / iOS ─────────────────────────────────────────────────────────
+    // Strategy: write PDF to Cache (no permissions needed on any Android version),
+    // then open the native Share sheet. This reliably triggers the system PDF
+    // viewer and also lets the user save / send the file.
     try {
       const base64 = doc.output('datauristring').split(',')[1];
 
-      // Write to the device's external Documents directory
-      const result = await Filesystem.writeFile({
+      // Cache dir is always writable — no WRITE_EXTERNAL_STORAGE permission needed
+      const written = await Filesystem.writeFile({
         path: filename,
         data: base64,
-        directory: Directory.Documents,
+        directory: Directory.Cache,
         recursive: true,
       });
 
-      // Build a native file URI that Android can open
-      const fileUri = result.uri;
-      const nativeUri = Capacitor.convertFileSrc(fileUri);
-
-      // Open with the system PDF viewer via an <a> click on the native URI
-      // (works without a file-opener plugin on most Android versions)
-      const link = document.createElement('a');
-      link.href = nativeUri;
-      link.target = '_blank';
-      link.rel = 'noopener';
-      link.click();
-    } catch (err) {
-      console.error('Android PDF save failed:', err);
-      alert('PDF saved but could not be opened automatically. Check your Documents folder.');
+      // Share sheet opens PDF in the system viewer and gives Save/Print options
+      await Share.share({
+        title: 'OT Work Order PDF',
+        text: 'Your overtime work order PDF is ready.',
+        url: written.uri,        // native file:// URI
+        dialogTitle: 'Save or open your PDF',
+      });
+    } catch (err: any) {
+      // User cancelled the share sheet → ignore; anything else → alert
+      if (err?.message && !err.message.toLowerCase().includes('cancel')) {
+        console.error('Android PDF share failed:', err);
+        alert(`Could not share PDF: ${err.message}`);
+      }
     }
   } else {
     // ── Browser ────────────────────────────────────────────────────────────────
@@ -238,7 +239,7 @@ export async function generateOTPdf(
       if ('showSaveFilePicker' in window) {
         const handle = await (window as any).showSaveFilePicker({
           suggestedName: filename,
-          types: [{ description: 'PDF Document', accept: { 'application/pdf': ['.pdf'] } }]
+          types: [{ description: 'PDF Document', accept: { 'application/pdf': ['.pdf'] } }],
         });
         const writable = await handle.createWritable();
         await writable.write(doc.output('arraybuffer'));
