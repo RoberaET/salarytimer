@@ -64,25 +64,33 @@ export async function generateOTPdf(
   doc.text("Authorized by ______Division/Dep't Manager: ______Division/Dep't Manager:______________", 14, 72);
 
   // 3. Table Processing
-  let sum15 = 0, sum175 = 0, sum20 = 0, sum25 = 0;
+  let sum15Ms = 0, sum175Ms = 0, sum20Ms = 0, sum25Ms = 0;
+
+  function formatDuration(ms: number): string {
+    if (ms <= 0) return '';
+    const totalMinutes = Math.round(ms / 60000);
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return `${hrs}:${String(mins).padStart(2, '0')}`;
+  }
 
   const tableRows = records.map(r => {
-    const durationHrs = ((r.endMs - r.startMs) / 3600000).toFixed(2);
+    const durationMs = r.endMs - r.startMs;
     let val15 = '', val175 = '', val20 = '', val25 = '';
     
     const mult = typeof r.multiplierMode === 'number' ? r.multiplierMode : 1.5;
     if (mult <= 1.5) {
-      val15 = durationHrs;
-      sum15 += parseFloat(durationHrs);
+      val15 = formatDuration(durationMs);
+      sum15Ms += durationMs;
     } else if (mult <= 1.75) {
-      val175 = durationHrs;
-      sum175 += parseFloat(durationHrs);
+      val175 = formatDuration(durationMs);
+      sum175Ms += durationMs;
     } else if (mult <= 2.0) {
-      val20 = durationHrs;
-      sum20 += parseFloat(durationHrs);
+      val20 = formatDuration(durationMs);
+      sum20Ms += durationMs;
     } else {
-      val25 = durationHrs;
-      sum25 += parseFloat(durationHrs);
+      val25 = formatDuration(durationMs);
+      sum25Ms += durationMs;
     }
 
     return [
@@ -131,10 +139,10 @@ export async function generateOTPdf(
         { content: 'TOTAL', styles: { fontStyle: 'bold', halign: 'center' } },
         '',
         '',
-        { content: sum15 > 0 ? sum15.toFixed(2) : '', styles: { fontStyle: 'bold', halign: 'center' } },
-        { content: sum175 > 0 ? sum175.toFixed(2) : '', styles: { fontStyle: 'bold', halign: 'center' } },
-        { content: sum20 > 0 ? sum20.toFixed(2) : '', styles: { fontStyle: 'bold', halign: 'center' } },
-        { content: sum25 > 0 ? sum25.toFixed(2) : '', styles: { fontStyle: 'bold', halign: 'center' } },
+        { content: sum15Ms > 0 ? formatDuration(sum15Ms) : '', styles: { fontStyle: 'bold', halign: 'center' } },
+        { content: sum175Ms > 0 ? formatDuration(sum175Ms) : '', styles: { fontStyle: 'bold', halign: 'center' } },
+        { content: sum20Ms > 0 ? formatDuration(sum20Ms) : '', styles: { fontStyle: 'bold', halign: 'center' } },
+        { content: sum25Ms > 0 ? formatDuration(sum25Ms) : '', styles: { fontStyle: 'bold', halign: 'center' } },
         '',
         ''
       ]

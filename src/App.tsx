@@ -475,11 +475,14 @@ function ExportPdfModal({ onClose, otHistory, setOtHistory }: {
   
   // Calculate estimated total hours from these records to put in the template header
   const estimatedHours = useMemo(() => {
-    let totalHrs = 0;
+    let totalMs = 0;
     recordsToExport.forEach(r => {
-      totalHrs += (r.endMs - r.startMs) / 3600000;
+      totalMs += (r.endMs - r.startMs);
     });
-    return totalHrs.toFixed(2);
+    const totalMinutes = Math.round(totalMs / 60000);
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return `${hrs}:${String(mins).padStart(2, '0')}`;
   }, [recordsToExport]);
 
   const handleExport = () => {
