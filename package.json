@@ -13,6 +13,8 @@
     "@capacitor/android": "^8.3.3",
     "@capacitor/cli": "^8.3.3",
     "@capacitor/core": "^8.3.3",
+    "@capacitor/filesystem": "^8.1.2",
+    "@ionic-native/file-opener": "^5.36.0",
     "ethiopian-calendar-date-converter": "^2.1.6",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",

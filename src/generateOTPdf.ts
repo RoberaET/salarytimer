@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Capacitor } from '@capacitor/core';
 
 export interface OvertimeRecord {
   id: string;
@@ -197,29 +199,58 @@ export async function generateOTPdf(
   doc.text('D/CEO Operation/Resource', 140, sigY + 10);
   doc.text('Name & Signature', 140, sigY + 15);
 
-  // 6. Download
+  // 6. Download — platform-aware
   const filename = `OT_Work_Order_${new Date().toISOString().split('T')[0]}.pdf`;
-  
-  try {
-    if ('showSaveFilePicker' in window) {
-      const handle = await (window as any).showSaveFilePicker({
-        suggestedName: filename,
-        types: [{
-          description: 'PDF Document',
-          accept: { 'application/pdf': ['.pdf'] }
-        }]
+
+  if (Capacitor.isNativePlatform()) {
+    // ── Android / iOS ──────────────────────────────────────────────────────────
+    // Capacitor cannot trigger browser downloads. Save to device storage instead
+    // and open the file so the user can share / print it.
+    try {
+      const base64 = doc.output('datauristring').split(',')[1];
+
+      // Write to the device's external Documents directory
+      const result = await Filesystem.writeFile({
+        path: filename,
+        data: base64,
+        directory: Directory.Documents,
+        recursive: true,
       });
-      const writable = await handle.createWritable();
-      // jspdf's .output('arraybuffer') is standard
-      await writable.write(doc.output('arraybuffer'));
-      await writable.close();
-    } else {
-      doc.save(filename);
+
+      // Build a native file URI that Android can open
+      const fileUri = result.uri;
+      const nativeUri = Capacitor.convertFileSrc(fileUri);
+
+      // Open with the system PDF viewer via an <a> click on the native URI
+      // (works without a file-opener plugin on most Android versions)
+      const link = document.createElement('a');
+      link.href = nativeUri;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.click();
+    } catch (err) {
+      console.error('Android PDF save failed:', err);
+      alert('PDF saved but could not be opened automatically. Check your Documents folder.');
     }
-  } catch (err: any) {
-    if (err.name !== 'AbortError') {
-      console.error('Save failed:', err);
-      doc.save(filename);
+  } else {
+    // ── Browser ────────────────────────────────────────────────────────────────
+    try {
+      if ('showSaveFilePicker' in window) {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'PDF Document', accept: { 'application/pdf': ['.pdf'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(doc.output('arraybuffer'));
+        await writable.close();
+      } else {
+        doc.save(filename);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Save failed:', err);
+        doc.save(filename);
+      }
     }
   }
 }
